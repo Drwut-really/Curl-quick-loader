@@ -1,0 +1,44 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <UseWindowsForms>true</UseWindowsForms>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AssemblyName>CurlQuickLoader</AssemblyName>
+    <RootNamespace>CurlQuickLoader</RootNamespace>
+    <PublishSingleFile>true</PublishSingleFile>
+    <SelfContained>true</SelfContained>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
+  </PropertyGroup>
+
+  <!-- Explicit reference assembly paths for cross-compiling WinForms on Linux -->
+  <PropertyGroup>
+    <_WinFormsRefPath>/root/.nuget/packages/microsoft.windowsdesktop.app.ref/8.0.25/ref/net8.0</_WinFormsRefPath>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Reference Include="System.Windows.Forms">
+      <HintPath>$(_WinFormsRefPath)/System.Windows.Forms.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Windows.Forms.Primitives">
+      <HintPath>$(_WinFormsRefPath)/System.Windows.Forms.Primitives.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Drawing">
+      <HintPath>$(_WinFormsRefPath)/System.Drawing.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Drawing.Common">
+      <HintPath>$(_WinFormsRefPath)/System.Drawing.Common.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Drawing.Design">
+      <HintPath>$(_WinFormsRefPath)/System.Drawing.Design.dll</HintPath>
+    </Reference>
+    <Reference Include="Accessibility">
+      <HintPath>$(_WinFormsRefPath)/Accessibility.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+
+</Project>

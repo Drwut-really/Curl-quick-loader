@@ -1,0 +1,25 @@
+# Build outputs
+bin/
+obj/
+
+# MSBuild binary logs
+*.binlog
+
+# User-specific files
+*.user
+*.suo
+.vs/
+
+# Rider/JetBrains
+.idea/
+
+# VS Code
+.vscode/
+
+# NuGet
+*.nupkg
+packages/
+
+# OS
+.DS_Store
+Thumbs.db
