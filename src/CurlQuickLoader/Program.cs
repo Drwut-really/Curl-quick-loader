@@ -6,11 +6,12 @@ namespace CurlQuickLoader;
 
 static class Program
 {
-    // Used in GUI mode to detach from the console so no window appears.
-    // With OutputType=Exe the shell attaches a console automatically; freeing
-    // it before the message loop prevents an unwanted black window on launch.
-    [DllImport("kernel32.dll")]
-    private static extern bool FreeConsole();
+    [DllImport("kernel32.dll")] private static extern bool FreeConsole();
+    [DllImport("kernel32.dll")] private static extern IntPtr GetConsoleWindow();
+    [DllImport("kernel32.dll")] private static extern uint GetConsoleProcessList(uint[] pids, uint count);
+    [DllImport("user32.dll")]   private static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
+
+    private const int SW_HIDE = 0;
 
     [STAThread]
     static void Main(string[] args)
@@ -25,10 +26,8 @@ static class Program
 
         if (args.Length > 0)
         {
-            // CLI mode.
-            // OutputType=Exe means the shell (cmd / PowerShell) already holds
-            // a console for this process and waits for it to exit before
-            // returning the prompt — no AttachConsole dance needed.
+            // CLI mode — Exe subsystem means the shell already owns a console
+            // for this process and waits for it to exit before showing the prompt.
             Console.WriteLine();
 
             Logger.Info("Running in CLI mode");
@@ -50,8 +49,23 @@ static class Program
             return;
         }
 
-        // GUI mode — detach from the console immediately so no black window
-        // appears when the user double-clicks or launches without switches.
+        // GUI mode — detach from the console so no black window appears.
+        //
+        // Two launch scenarios:
+        //   a) Double-click / Explorer: Windows creates a brand-new console for
+        //      this process. GetConsoleProcessList returns 1 (only us). We must
+        //      hide the window BEFORE freeing it, otherwise it flashes visibly.
+        //   b) Launched from cmd/PowerShell with no args: the shell's console is
+        //      inherited (process list has ≥ 2 entries). We just detach — hiding
+        //      the window would close the user's terminal, which is wrong.
+        uint[] pids = new uint[2];
+        bool isOwnedConsole = GetConsoleProcessList(pids, 2) == 1;
+        if (isOwnedConsole)
+        {
+            IntPtr hwnd = GetConsoleWindow();
+            if (hwnd != IntPtr.Zero)
+                ShowWindow(hwnd, SW_HIDE); // hide before free to prevent flash
+        }
         FreeConsole();
 
         Logger.Info("Running in GUI mode");

@@ -244,6 +244,10 @@ You can also edit `presets\presets.json` directly in any text editor — it's pl
 
 ## Changelog
 
+### v0.0.5 (prerelease)
+- **Fix:** No console window on GUI launch. `GetConsoleProcessList` is used to distinguish a double-click launch (process owns the console) from a shell launch with no args (console is inherited). Only in the former case is the window hidden via `ShowWindow(SW_HIDE)` before `FreeConsole()` — hiding it in the inherited case would close the user's terminal.
+- **New:** Command preview and output panels are now resizable — a draggable horizontal splitter separates them in the right panel.
+
 ### v0.0.4 (prerelease)
 - **Fix:** Shell prompt now returns immediately after CLI commands finish. The executable subsystem was changed from `WinExe` to `Exe` so cmd.exe and PowerShell wait for the process to exit before redisplaying the prompt. `FreeConsole()` is called in GUI mode so no console window appears on double-click.
 
