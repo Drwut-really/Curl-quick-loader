@@ -6,60 +6,42 @@ on:
       version:
         description: 'Release version (e.g. v0.0.6)'
         required: true
-  push:
-    branches: [main]
-    paths: ['RELEASE_TRIGGER']
 
 permissions:
   contents: write
 
 jobs:
   release:
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
 
     steps:
       - uses: actions/checkout@v4
 
-      - name: Determine version
-        run: |
-          if [ "${{ github.event_name }}" = "push" ]; then
-            VERSION=$(cat RELEASE_TRIGGER | tr -d '[:space:]')
-          else
-            VERSION="${{ github.event.inputs.version }}"
-          fi
-          echo "VERSION=$VERSION" >> $GITHUB_ENV
-
-      - name: Install .NET 10 SDK
-        run: |
-          curl -sSL https://dot.net/v1/dotnet-install.sh -o dotnet-install.sh
-          chmod +x dotnet-install.sh
-          ./dotnet-install.sh --channel 10.0 --install-dir $HOME/.dotnet
-          echo "$HOME/.dotnet" >> $GITHUB_PATH
-          echo "DOTNET_ROOT=$HOME/.dotnet" >> $GITHUB_ENV
-
-      - name: Verify .NET version
-        run: dotnet --version
+      - name: Setup .NET 10
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
 
       - name: Publish self-contained exe
         run: |
-          dotnet publish src/CurlQuickLoader/CurlQuickLoader.csproj \
-            -c Release -r win-x64 --self-contained true \
-            -p:PublishSingleFile=true \
-            -p:EnableWindowsTargeting=true \
-            -v:n
+          dotnet publish src/CurlQuickLoader/CurlQuickLoader.csproj `
+            -c Release -r win-x64 --self-contained true `
+            -p:PublishSingleFile=true
 
       - name: Package zip
+        shell: pwsh
         run: |
-          ZIPNAME="CurlQuickLoader-${VERSION}-win-x64-selfcontained.zip"
-          PUBLISH="src/CurlQuickLoader/bin/Release/net10.0-windows/win-x64/publish"
-          zip -j "${ZIPNAME}" "${PUBLISH}/CurlQuickLoader.exe"
-          echo "ZIPNAME=${ZIPNAME}" >> $GITHUB_ENV
+          $version = "${{ github.event.inputs.version }}"
+          $zipname = "CurlQuickLoader-$version-win-x64-selfcontained.zip"
+          $publish = "src/CurlQuickLoader/bin/Release/net10.0-windows/win-x64/publish"
+          Compress-Archive -Path "$publish/CurlQuickLoader.exe" -DestinationPath $zipname
+          Add-Content $env:GITHUB_ENV "ZIPNAME=$zipname"
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ env.VERSION }}
-          name: ${{ env.VERSION }}
+          tag_name: ${{ github.event.inputs.version }}
+          name: ${{ github.event.inputs.version }}
           prerelease: true
           files: ${{ env.ZIPNAME }}
           body: |
@@ -75,6 +57,6 @@ jobs:
 
             ## Installation
 
-            Download `CurlQuickLoader-${{ env.VERSION }}-win-x64-selfcontained.zip`, extract, and run `CurlQuickLoader.exe`. No .NET required.
+            Download `CurlQuickLoader-${{ github.event.inputs.version }}-win-x64-selfcontained.zip`, extract, and run `CurlQuickLoader.exe`. No .NET required.
 
             > curl is required. Windows 10 1803+ and Windows 11 include it in System32.
