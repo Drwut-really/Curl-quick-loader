@@ -1,0 +1,50 @@
+name: Build and Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version (e.g. v0.0.6)'
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET 10
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.x'
+
+      - name: Publish self-contained exe
+        run: |
+          dotnet publish src/CurlQuickLoader/CurlQuickLoader.csproj \
+            -c Release -r win-x64 --self-contained true \
+            -p:PublishSingleFile=true \
+            -p:EnableWindowsTargeting=true
+
+      - name: Package zip
+        run: |
+          VERSION=${{ github.event.inputs.version }}
+          ZIPNAME="CurlQuickLoader-${VERSION}-win-x64-selfcontained.zip"
+          cd src/CurlQuickLoader/bin/Release/net10.0-windows/win-x64/publish
+          zip "../../../../../../../${ZIPNAME}" CurlQuickLoader.exe
+          echo "ZIPNAME=${ZIPNAME}" >> $GITHUB_ENV
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.event.inputs.version }}
+          name: ${{ github.event.inputs.version }}
+          prerelease: true
+          files: ${{ env.ZIPNAME }}
+          body: |
+            Download `${{ env.ZIPNAME }}`, extract, and run `CurlQuickLoader.exe`. No .NET required.
+
+            > curl is required. Windows 10 1803+ and Windows 11 include it in System32.
