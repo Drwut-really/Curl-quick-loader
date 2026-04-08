@@ -8,8 +8,18 @@ public class HeadersEditorControl : UserControl
     private Button _btnAdd = null!;
     private Button _btnRemove = null!;
 
-    public HeadersEditorControl()
+    private readonly string _keyColumnLabel;
+    private readonly string _addButtonText;
+
+    /// <summary>Raised whenever a row is added, removed, or a cell value changes.</summary>
+    public event EventHandler? OnChanged;
+
+    public HeadersEditorControl(
+        string keyColumnLabel = "Header Name",
+        string addButtonText = "+ Add Header")
     {
+        _keyColumnLabel = keyColumnLabel;
+        _addButtonText = addButtonText;
         InitializeComponent();
     }
 
@@ -35,7 +45,7 @@ public class HeadersEditorControl : UserControl
 
         var colKey = new DataGridViewTextBoxColumn
         {
-            HeaderText = "Header Name",
+            HeaderText = _keyColumnLabel,
             Name = "Key",
             FillWeight = 40
         };
@@ -47,6 +57,7 @@ public class HeadersEditorControl : UserControl
         };
         _grid.Columns.Add(colKey);
         _grid.Columns.Add(colValue);
+        _grid.CellValueChanged += (_, _) => OnChanged?.Invoke(this, EventArgs.Empty);
 
         // Buttons panel
         var buttonPanel = new FlowLayoutPanel
@@ -57,7 +68,7 @@ public class HeadersEditorControl : UserControl
             Padding = new Padding(0, 4, 0, 0)
         };
 
-        _btnAdd.Text = "+ Add Header";
+        _btnAdd.Text = _addButtonText;
         _btnAdd.AutoSize = true;
         _btnAdd.Click += BtnAdd_Click;
 
@@ -77,10 +88,10 @@ public class HeadersEditorControl : UserControl
     private void BtnAdd_Click(object? sender, EventArgs e)
     {
         _grid.Rows.Add("", "");
-        // Focus the new row's Key cell
         int newRowIdx = _grid.Rows.Count - 1;
         _grid.CurrentCell = _grid.Rows[newRowIdx].Cells["Key"];
         _grid.BeginEdit(true);
+        OnChanged?.Invoke(this, EventArgs.Empty);
     }
 
     private void BtnRemove_Click(object? sender, EventArgs e)
@@ -94,6 +105,7 @@ public class HeadersEditorControl : UserControl
         {
             _grid.Rows.RemoveAt(_grid.CurrentCell.RowIndex);
         }
+        OnChanged?.Invoke(this, EventArgs.Empty);
     }
 
     public List<Header> GetHeaders()
