@@ -24,12 +24,12 @@ A Windows desktop application for creating and managing named preset curl comman
 
 ### Option 1 — Self-contained (no .NET required)
 
-Download and extract **[CurlQuickLoader-v1.0.0-win-x64-selfcontained.zip](releases/v1.0.0/CurlQuickLoader-v1.0.0-win-x64-selfcontained.zip)**, then run `CurlQuickLoader.exe`.
+Download and extract **[CurlQuickLoader-v0.0.1-win-x64-selfcontained.zip](releases/v0.0.1/CurlQuickLoader-v0.0.1-win-x64-selfcontained.zip)**, then run `CurlQuickLoader.exe`.
 
 ### Option 2 — Framework-dependent (smaller download)
 
 1. Install the [.NET 10 Windows Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/10.0)
-2. Download and extract **[CurlQuickLoader-v1.0.0-win-x64.zip](releases/v1.0.0/CurlQuickLoader-v1.0.0-win-x64.zip)**, then run `CurlQuickLoader.exe`
+2. Download and extract **[CurlQuickLoader-v0.0.1-win-x64.zip](releases/v0.0.1/CurlQuickLoader-v0.0.1-win-x64.zip)**, then run `CurlQuickLoader.exe`
 
 > **Note:** curl is required to run presets. Windows 10 (1803+) and Windows 11 include curl in `System32` — no extra install needed.
 
@@ -247,6 +247,17 @@ Create a preset named `Morning Alert`, then set the Task Scheduler trigger to *D
 **Import:** Go to **File → Import Presets** to load presets from a `.json` file. Presets whose name already exists are skipped (no overwrite without editing the name first).
 
 You can also edit `presets\presets.json` directly in any text editor — it's plain, human-readable JSON.
+
+---
+
+## Changelog
+
+### v0.0.1 (prerelease)
+- **Fix:** Application now correctly detects its own directory when deployed as a single-file exe — presets folder is created next to the `.exe`, not in a temp extraction folder
+- **Fix:** `SplitterDistance` is now set after the form has finished layout, preventing a silent startup crash on certain Windows 11 configurations
+- **Fix:** `CheckCurlAvailable()` is now called in the `Load` event (after the window is visible) rather than in the constructor, eliminating a startup hang if the system is slow to respond
+- **Fix:** `Application.SetHighDpiMode(SystemAware)` added to improve rendering on high-DPI displays
+- **New:** Logging system — all startup events, errors, and preset operations are written to `logs\app-YYYY-MM-DD.log` next to the exe. Check this file if the app fails to start
 
 ---
 

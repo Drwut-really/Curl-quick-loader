@@ -16,16 +16,20 @@ public class PresetRepository
 
     public PresetRepository()
     {
-        // Store presets in a "presets" folder next to the executable
-        string exeDir = AppContext.BaseDirectory;
+        // Use Environment.ProcessPath so single-file exe deployments store
+        // presets next to the actual .exe, not in the temp extraction folder.
+        string exeDir = Logger.GetBaseDir();
         _presetsDir = Path.Combine(exeDir, "presets");
         _presetsFile = Path.Combine(_presetsDir, "presets.json");
+        Logger.Info($"Presets directory: {_presetsDir}");
     }
 
     public List<CurlPreset> Load()
     {
+        Logger.Info($"Loading presets from: {_presetsFile}");
         if (!File.Exists(_presetsFile))
         {
+            Logger.Info("Presets file not found, creating empty store");
             Directory.CreateDirectory(_presetsDir);
             File.WriteAllText(_presetsFile, "[]");
             return new List<CurlPreset>();
@@ -34,16 +38,20 @@ public class PresetRepository
         try
         {
             string json = File.ReadAllText(_presetsFile);
-            return JsonSerializer.Deserialize<List<CurlPreset>>(json, JsonOptions) ?? new List<CurlPreset>();
+            var list = JsonSerializer.Deserialize<List<CurlPreset>>(json, JsonOptions) ?? new List<CurlPreset>();
+            Logger.Info($"Loaded {list.Count} preset(s)");
+            return list;
         }
-        catch
+        catch (Exception ex)
         {
+            Logger.Error("Failed to deserialize presets", ex);
             return new List<CurlPreset>();
         }
     }
 
     public void Save(List<CurlPreset> presets)
     {
+        Logger.Info($"Saving {presets.Count} preset(s)");
         Directory.CreateDirectory(_presetsDir);
         string tmpFile = _presetsFile + ".tmp";
         string json = JsonSerializer.Serialize(presets, JsonOptions);

@@ -24,23 +24,29 @@ public class MainForm : Form
     private Button _btnDelete = null!;
     private Button _btnDuplicate = null!;
 
+    // Split container — stored so SplitterDistance can be set after layout
+    private SplitContainer _split = null!;
+
     private List<CurlPreset> _allPresets = new();
 
     public MainForm()
     {
+        Logger.Info("MainForm constructor start");
         _repo = new PresetRepository();
         _runner = new CurlRunner();
         InitializeComponent();
-        CheckCurlAvailable();
-        LoadPresets();
+        Logger.Info("MainForm constructor complete");
     }
 
     private void InitializeComponent()
     {
+        Logger.Info("InitializeComponent start");
+
         Text = "Curl Quick Loader";
         Size = new Size(1000, 680);
         MinimumSize = new Size(800, 500);
         StartPosition = FormStartPosition.CenterScreen;
+        Load += MainForm_Load;
 
         BuildMenu();
 
@@ -61,10 +67,9 @@ public class MainForm : Form
         toolbar.Controls.AddRange(new Control[] { _btnNew, _btnEdit, _btnDelete, _btnDuplicate });
 
         // ── Main split ───────────────────────────────────────────────────────
-        var split = new SplitContainer
+        _split = new SplitContainer
         {
             Dock = DockStyle.Fill,
-            SplitterDistance = 370,
             Panel1MinSize = 260,
             Panel2MinSize = 300
         };
@@ -107,7 +112,7 @@ public class MainForm : Form
 
         leftPanel.Controls.Add(_txtSearch, 0, 0);
         leftPanel.Controls.Add(_listView, 0, 1);
-        split.Panel1.Controls.Add(leftPanel);
+        _split.Panel1.Controls.Add(leftPanel);
 
         // RIGHT: command preview + actions + output
         var rightPanel = new TableLayoutPanel
@@ -187,12 +192,33 @@ public class MainForm : Form
         rightPanel.Controls.Add(_txtCommand, 0, 1);
         rightPanel.Controls.Add(actionPanel, 0, 2);
         rightPanel.Controls.Add(outputWrapper, 0, 3);
-        split.Panel2.Controls.Add(rightPanel);
+        _split.Panel2.Controls.Add(rightPanel);
 
-        Controls.Add(split);
+        Controls.Add(_split);
         Controls.Add(toolbar);
 
         UpdateButtonStates();
+        Logger.Info("InitializeComponent complete");
+    }
+
+    private void MainForm_Load(object? sender, EventArgs e)
+    {
+        Logger.Info("MainForm_Load start");
+        try
+        {
+            // Set SplitterDistance after the form has been laid out to avoid
+            // InvalidOperationException on some Windows configurations
+            _split.SplitterDistance = Math.Min(370, _split.Width - _split.Panel2MinSize - _split.SplitterWidth);
+
+            CheckCurlAvailable();
+            LoadPresets();
+            Logger.Info("MainForm_Load complete");
+        }
+        catch (Exception ex)
+        {
+            Logger.Error("Exception in MainForm_Load", ex);
+            throw;
+        }
     }
 
     private void BuildMenu()
@@ -233,8 +259,10 @@ public class MainForm : Form
 
     private void LoadPresets()
     {
+        Logger.Info("LoadPresets start");
         _allPresets = _repo.Load();
         FilterPresets();
+        Logger.Info("LoadPresets complete");
     }
 
     private void FilterPresets()
@@ -305,6 +333,7 @@ public class MainForm : Form
 
     private void BtnNew_Click(object? sender, EventArgs e)
     {
+        Logger.Info("New preset");
         using var form = new PresetEditForm(_repo);
         if (form.ShowDialog(this) == DialogResult.OK && form.Result != null)
         {
@@ -318,6 +347,7 @@ public class MainForm : Form
     {
         var preset = SelectedPreset;
         if (preset == null) return;
+        Logger.Info($"Edit preset: {preset.Name}");
 
         using var form = new PresetEditForm(_repo, preset);
         if (form.ShowDialog(this) == DialogResult.OK && form.Result != null)
@@ -341,6 +371,7 @@ public class MainForm : Form
 
         if (answer == DialogResult.Yes)
         {
+            Logger.Info($"Delete preset: {preset.Name}");
             _repo.Delete(preset.Id);
             LoadPresets();
         }
@@ -353,10 +384,9 @@ public class MainForm : Form
 
         var clone = preset.Clone();
         clone.Name = GenerateUniqueName(preset.Name);
+        Logger.Info($"Duplicate preset: {preset.Name} → {clone.Name}");
 
-        // Open edit form so user can rename before saving
         using var form = new PresetEditForm(_repo, clone);
-        // Pre-fill with clone's name (already set above)
         if (form.ShowDialog(this) == DialogResult.OK && form.Result != null)
         {
             _repo.Add(form.Result);
@@ -379,32 +409,48 @@ public class MainForm : Form
         if (preset == null) return;
 
         _txtOutput.Clear();
-        AppendOutput($"> {CurlCommandBuilder.Build(preset)}");
+        string cmd = CurlCommandBuilder.Build(preset);
+        AppendOutput($"> {cmd}");
         AppendOutput(string.Empty);
+        Logger.Info($"Run preset: {preset.Name}");
 
         _btnRun.Enabled = false;
         _btnRun.Text = "Running…";
 
         Task.Run(() =>
         {
-            var result = _runner.Run(preset);
-            Invoke(() =>
+            try
             {
-                if (!string.IsNullOrWhiteSpace(result.Output))
-                    AppendOutput(result.Output.TrimEnd());
-
-                if (!string.IsNullOrWhiteSpace(result.Error))
+                var result = _runner.Run(preset);
+                Invoke(() =>
                 {
-                    AppendOutput("[stderr]", Color.Yellow);
-                    AppendOutput(result.Error.TrimEnd(), Color.Yellow);
-                }
+                    if (!string.IsNullOrWhiteSpace(result.Output))
+                        AppendOutput(result.Output.TrimEnd());
 
-                string exitMsg = $"[Exit code: {result.ExitCode}]";
-                AppendOutput(exitMsg, result.ExitCode == 0 ? Color.LightGreen : Color.OrangeRed);
+                    if (!string.IsNullOrWhiteSpace(result.Error))
+                    {
+                        AppendOutput("[stderr]", Color.Yellow);
+                        AppendOutput(result.Error.TrimEnd(), Color.Yellow);
+                    }
 
-                _btnRun.Enabled = true;
-                _btnRun.Text = "Run Now";
-            });
+                    string exitMsg = $"[Exit code: {result.ExitCode}]";
+                    AppendOutput(exitMsg, result.ExitCode == 0 ? Color.LightGreen : Color.OrangeRed);
+                    Logger.Info($"Preset run finished. Exit code: {result.ExitCode}");
+
+                    _btnRun.Enabled = true;
+                    _btnRun.Text = "Run Now";
+                });
+            }
+            catch (Exception ex)
+            {
+                Logger.Error("Exception running preset", ex);
+                Invoke(() =>
+                {
+                    AppendOutput($"[Error: {ex.Message}]", Color.OrangeRed);
+                    _btnRun.Enabled = true;
+                    _btnRun.Text = "Run Now";
+                });
+            }
         });
     }
 
@@ -434,11 +480,13 @@ public class MainForm : Form
             var options = new System.Text.Json.JsonSerializerOptions { WriteIndented = true };
             string json = System.Text.Json.JsonSerializer.Serialize(presets, options);
             File.WriteAllText(dialog.FileName, json);
+            Logger.Info($"Exported {presets.Count} preset(s) to {dialog.FileName}");
             MessageBox.Show($"Exported {presets.Count} preset(s) to:\n{dialog.FileName}",
                 "Export Complete", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
         catch (Exception ex)
         {
+            Logger.Error("Export failed", ex);
             MessageBox.Show($"Export failed:\n{ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
         }
     }
@@ -474,7 +522,7 @@ public class MainForm : Form
                 }
                 else
                 {
-                    p.Id = Guid.NewGuid(); // ensure fresh ID
+                    p.Id = Guid.NewGuid();
                     existing.Add(p);
                     added++;
                 }
@@ -482,11 +530,13 @@ public class MainForm : Form
 
             _repo.Save(existing);
             LoadPresets();
+            Logger.Info($"Import: added={added}, skipped={skipped}");
             MessageBox.Show($"Import complete.\n  Added: {added}\n  Skipped (name conflict): {skipped}",
                 "Import", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
         catch (Exception ex)
         {
+            Logger.Error("Import failed", ex);
             MessageBox.Show($"Import failed:\n{ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
         }
     }
@@ -518,15 +568,21 @@ public class MainForm : Form
 
     private void CheckCurlAvailable()
     {
+        Logger.Info("Checking curl availability");
         if (!CurlRunner.IsCurlAvailable())
         {
+            Logger.Warn("curl not found on PATH");
             MessageBox.Show(
                 "curl was not found on your system PATH.\n\n" +
-                "Windows 10 (1803+) includes curl in System32.\n" +
-                "If you're on an older version, download curl from https://curl.se/windows/",
+                "Windows 10 (1803+) and Windows 11 include curl in System32.\n" +
+                "If curl is missing, download it from https://curl.se/windows/",
                 "curl Not Found",
                 MessageBoxButtons.OK,
                 MessageBoxIcon.Warning);
+        }
+        else
+        {
+            Logger.Info("curl found on PATH");
         }
     }
 }
