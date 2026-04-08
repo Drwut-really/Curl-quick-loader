@@ -24,8 +24,10 @@ public class MainForm : Form
     private Button _btnDelete = null!;
     private Button _btnDuplicate = null!;
 
-    // Split container — stored so SplitterDistance can be set after layout
+    // Main left/right split — stored so distances can be set after layout
     private SplitContainer _split = null!;
+    // Right-panel command-preview / output split (horizontal, user-draggable)
+    private SplitContainer _rightSplit = null!;
 
     private List<CurlPreset> _allPresets = new();
 
@@ -111,26 +113,26 @@ public class MainForm : Form
         _split.Panel1.Controls.Add(leftPanel);
 
         // RIGHT: command preview + actions + output
-        var rightPanel = new TableLayoutPanel
-        {
-            Dock = DockStyle.Fill,
-            RowCount = 4,
-            ColumnCount = 1,
-            Padding = new Padding(4)
-        };
-        rightPanel.RowStyles.Add(new RowStyle(SizeType.Absolute, 22));  // label
-        rightPanel.RowStyles.Add(new RowStyle(SizeType.Absolute, 90));  // command box
-        rightPanel.RowStyles.Add(new RowStyle(SizeType.Absolute, 44));  // action buttons
-        rightPanel.RowStyles.Add(new RowStyle(SizeType.Percent, 100));  // output
+        // A horizontal SplitContainer lets the user drag the divider between
+        // the command-preview area (top) and the output terminal (bottom).
+        var rightOuter = new Panel { Dock = DockStyle.Fill, Padding = new Padding(4) };
 
         var cmdLabel = new Label
         {
             Text = "Generated curl command:",
-            Dock = DockStyle.Fill,
+            Dock = DockStyle.Top,
+            Height = 20,
             TextAlign = ContentAlignment.BottomLeft,
             Font = new Font(Font.FontFamily, 8f, FontStyle.Bold)
         };
 
+        _rightSplit = new SplitContainer
+        {
+            Dock = DockStyle.Fill,
+            Orientation = Orientation.Horizontal  // splitter bar runs left→right, divides top/bottom
+        };
+
+        // ── Top pane: command textbox + buttons ──────────────────────────────
         _txtCommand = new TextBox
         {
             Dock = DockStyle.Fill,
@@ -139,13 +141,12 @@ public class MainForm : Form
             ScrollBars = ScrollBars.Vertical,
             BackColor = Color.FromArgb(245, 245, 245),
             Font = new Font("Consolas", 9f),
-            ForeColor = Color.DarkGreen,
-            Margin = new Padding(0, 0, 0, 4)
+            ForeColor = Color.DarkGreen
         };
 
         var actionPanel = new FlowLayoutPanel
         {
-            Dock = DockStyle.Fill,
+            Dock = DockStyle.Bottom,
             FlowDirection = FlowDirection.LeftToRight,
             AutoSize = true,
             Padding = new Padding(0, 4, 0, 4)
@@ -160,15 +161,10 @@ public class MainForm : Form
         actionPanel.Controls.Add(_btnCopy);
         actionPanel.Controls.Add(_btnRun);
 
-        var outputLabel = new Label
-        {
-            Text = "Output:",
-            Dock = DockStyle.Top,
-            AutoSize = true,
-            Font = new Font(Font.FontFamily, 8f, FontStyle.Bold),
-            Padding = new Padding(0, 4, 0, 2)
-        };
+        _rightSplit.Panel1.Controls.Add(_txtCommand);
+        _rightSplit.Panel1.Controls.Add(actionPanel);
 
+        // ── Bottom pane: output terminal ─────────────────────────────────────
         _txtOutput = new RichTextBox
         {
             Dock = DockStyle.Fill,
@@ -180,15 +176,26 @@ public class MainForm : Form
             BorderStyle = BorderStyle.FixedSingle
         };
 
+        var outputLabel = new Label
+        {
+            Text = "Output:",
+            Dock = DockStyle.Top,
+            AutoSize = true,
+            Font = new Font(Font.FontFamily, 8f, FontStyle.Bold),
+            Padding = new Padding(0, 4, 0, 2)
+        };
+
         var outputWrapper = new Panel { Dock = DockStyle.Fill };
         outputWrapper.Controls.Add(_txtOutput);
         outputWrapper.Controls.Add(outputLabel);
 
-        rightPanel.Controls.Add(cmdLabel, 0, 0);
-        rightPanel.Controls.Add(_txtCommand, 0, 1);
-        rightPanel.Controls.Add(actionPanel, 0, 2);
-        rightPanel.Controls.Add(outputWrapper, 0, 3);
-        _split.Panel2.Controls.Add(rightPanel);
+        _rightSplit.Panel2.Controls.Add(outputWrapper);
+
+        // Add cmdLabel last so DockStyle.Top is processed after Fill (_rightSplit)
+        rightOuter.Controls.Add(_rightSplit);
+        rightOuter.Controls.Add(cmdLabel);
+
+        _split.Panel2.Controls.Add(rightOuter);
 
         Controls.Add(_split);
         Controls.Add(toolbar);
@@ -205,13 +212,18 @@ public class MainForm : Form
         Logger.Info("MainForm_Load start");
         try
         {
-            // Set Panel1MinSize, Panel2MinSize, and SplitterDistance after the form has
-            // been laid out to avoid InvalidOperationException — setting min sizes before
-            // the container has real dimensions causes the constraint math to fail against
-            // a zero-width control, which throws on some Windows configurations.
+            // Set min sizes and splitter distances after layout so the containers
+            // have real dimensions — avoids InvalidOperationException on startup.
             _split.Panel1MinSize = 260;
             _split.Panel2MinSize = 300;
             _split.SplitterDistance = Math.Min(370, _split.Width - _split.Panel2MinSize - _split.SplitterWidth);
+
+            _rightSplit.Panel1MinSize = 60;
+            _rightSplit.Panel2MinSize = 60;
+            // Default: command preview takes ~35% of the right panel height
+            _rightSplit.SplitterDistance = Math.Max(
+                _rightSplit.Panel1MinSize,
+                (int)(_rightSplit.Height * 0.35) - _rightSplit.SplitterWidth);
 
             CheckCurlAvailable();
             LoadPresets();
