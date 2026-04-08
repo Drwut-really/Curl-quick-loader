@@ -1,6 +1,6 @@
 # Curl Quick Loader
 
-A Windows desktop application for creating and managing named preset curl commands — complete with headers, HTTP method, URL, request body, and extra flags. Run presets instantly from the GUI, copy the full curl command to clipboard, or trigger them headlessly from scripts and Windows Task Scheduler.
+A Windows desktop application for creating and managing named preset curl commands — complete with headers, form data, HTTP method, URL, request body, and extra flags. Run presets instantly from the GUI, copy the full curl command to clipboard, or trigger them headlessly from scripts and Windows Task Scheduler.
 
 ---
 
@@ -22,7 +22,7 @@ A Windows desktop application for creating and managing named preset curl comman
 
 ## Installation
 
-Download and extract **[CurlQuickLoader-v0.0.3-win-x64-selfcontained.zip](releases/v0.0.3/CurlQuickLoader-v0.0.3-win-x64-selfcontained.zip)**, then run `CurlQuickLoader.exe`. No .NET installation required.
+Download **CurlQuickLoader-win-x64-selfcontained.zip** from the [latest release](https://github.com/Drwut-really/Curl-quick-loader/releases/latest), extract it, and run `CurlQuickLoader.exe`. No .NET installation required.
 
 > **Note:** curl is required to run presets. Windows 10 (1803+) and Windows 11 include curl in `System32` — no extra install needed.
 
@@ -30,7 +30,7 @@ Download and extract **[CurlQuickLoader-v0.0.3-win-x64-selfcontained.zip](releas
 
 ## GUI Usage
 
-When you launch the app you'll see two panels:
+When you launch the app you'll see the **File** and **Help** menu bar at the top, followed by the toolbar, and then two panels:
 
 **Left panel — Preset list**
 - Lists all your saved presets with their name, method, and URL
@@ -47,7 +47,7 @@ When you launch the app you'll see two panels:
 
 ## CLI Usage
 
-The same `CurlQuickLoader.exe` supports headless operation — no window is shown.
+The same `CurlQuickLoader.exe` supports headless operation — no window is shown and the shell prompt returns immediately after the command finishes.
 
 | Command | Description |
 |---|---|
@@ -82,7 +82,8 @@ Write-Host $cmd
    - **Method** — GET, POST, PUT, PATCH, DELETE, HEAD, or OPTIONS
    - **URL** — the full endpoint URL
    - **Headers** — click **+ Add Header** to add key/value pairs; remove with **Remove Selected**
-   - **Body** — raw request body (JSON, form data, etc.)
+   - **Form Data** — click **+ Add Field** to add key/value pairs sent as `--form-string` arguments (multipart form data); remove with **Remove Selected**
+   - **Body** — raw request body (JSON, XML, etc.) sent with `--data-binary`
    - **Extra Flags** — any additional curl flags appended verbatim (e.g. `--insecure -v --max-time 30`)
 3. The **Command Preview** at the bottom updates live as you type
 4. Click **Save**
@@ -104,9 +105,9 @@ Write-Host $cmd
 | Name | `Pushover - Alert` |
 | Method | `POST` |
 | URL | `https://api.pushover.net/1/messages.json` |
-| Headers | *(none required — Pushover uses form data)* |
+| Headers | *(none required)* |
+| Form Data | `token` = `YOUR_APP_TOKEN`, `user` = `YOUR_USER_KEY`, `title` = `Alert`, `message` = `Hello from Curl Quick Loader!` |
 | Body | *(leave empty)* |
-| Extra Flags | `--form-string "token=YOUR_APP_TOKEN" --form-string "user=YOUR_USER_KEY" --form-string "title=Alert" --form-string "message=Hello from Curl Quick Loader!"` |
 
 **Generated command:**
 ```bat
@@ -117,15 +118,14 @@ curl -X POST "https://api.pushover.net/1/messages.json" ^
   --form-string "message=Hello from Curl Quick Loader!"
 ```
 
-**Optional extra flags:**
+**Optional form data fields:**
 
-| Flag | Purpose |
-|---|---|
-| `--form-string "priority=1"` | High priority (bypasses quiet hours) |
-| `--form-string "priority=2" --form-string "retry=60" --form-string "expire=3600"` | Emergency priority — retries every 60s for up to 1 hour |
-| `--form-string "sound=siren"` | Custom notification sound |
-| `--form-string "device=my_iphone"` | Send to a specific registered device only |
-| `--form-string "html=1"` | Enable HTML formatting in the message body |
+| Key | Value | Purpose |
+|---|---|---|
+| `priority` | `1` | High priority (bypasses quiet hours) |
+| `sound` | `siren` | Custom notification sound |
+| `device` | `my_iphone` | Send to a specific registered device only |
+| `html` | `1` | Enable HTML formatting in the message body |
 
 ---
 
@@ -142,7 +142,6 @@ Discord webhooks let you post messages to a channel without a bot account. Creat
 | URL | `https://discord.com/api/webhooks/YOUR_WEBHOOK_ID/YOUR_WEBHOOK_TOKEN` |
 | Headers | `Content-Type: application/json` |
 | Body | `{"content": "Deployment complete!", "username": "Deploy Bot"}` |
-| Extra Flags | *(leave empty)* |
 
 **Generated command:**
 ```bat
@@ -244,6 +243,9 @@ You can also edit `presets\presets.json` directly in any text editor — it's pl
 ---
 
 ## Changelog
+
+### v0.0.4 (prerelease)
+- **Fix:** Shell prompt now returns immediately after CLI commands finish. The executable subsystem was changed from `WinExe` to `Exe` so cmd.exe and PowerShell wait for the process to exit before redisplaying the prompt. `FreeConsole()` is called in GUI mode so no console window appears on double-click.
 
 ### v0.0.3 (prerelease)
 - **New:** Form Data editor — add key/value pairs in the preset dialog that are appended as `--form-string "key=value"` curl arguments, identical UX to the Headers editor

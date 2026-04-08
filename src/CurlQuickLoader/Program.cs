@@ -6,10 +6,11 @@ namespace CurlQuickLoader;
 
 static class Program
 {
+    // Used in GUI mode to detach from the console so no window appears.
+    // With OutputType=Exe the shell attaches a console automatically; freeing
+    // it before the message loop prevents an unwanted black window on launch.
     [DllImport("kernel32.dll")]
-    private static extern bool AttachConsole(int dwProcessId);
-
-    private const int ATTACH_PARENT_PROCESS = -1;
+    private static extern bool FreeConsole();
 
     [STAThread]
     static void Main(string[] args)
@@ -24,8 +25,10 @@ static class Program
 
         if (args.Length > 0)
         {
-            // CLI mode: re-attach to the parent console so output is visible
-            AttachConsole(ATTACH_PARENT_PROCESS);
+            // CLI mode.
+            // OutputType=Exe means the shell (cmd / PowerShell) already holds
+            // a console for this process and waits for it to exit before
+            // returning the prompt — no AttachConsole dance needed.
             Console.WriteLine();
 
             Logger.Info("Running in CLI mode");
@@ -47,7 +50,10 @@ static class Program
             return;
         }
 
-        // GUI mode
+        // GUI mode — detach from the console immediately so no black window
+        // appears when the user double-clicks or launches without switches.
+        FreeConsole();
+
         Logger.Info("Running in GUI mode");
         try
         {
