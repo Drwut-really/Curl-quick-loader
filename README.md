@@ -1,6 +1,10 @@
 # Curl Quick Loader
 
-A Windows desktop application for creating and managing named preset curl commands — complete with headers, form data, HTTP method, URL, request body, and extra flags. Run presets instantly from the GUI, copy the full curl command to clipboard, or trigger them headlessly from scripts and Windows Task Scheduler.
+
+
+A Windows desktop application for creating and managing named preset curl commands — complete with headers, form data, HTTP method, URL, request body, and extra flags. Run presets instantly from the GUI, copy the full curl command to clipboard, or trigger them headlessly from scripts and Windows Task Scheduler. This can also be used for API testing.
+
+Orginally this was created out of a personal need as well as teach myself more about AI and coding in general to gain a better understanding.
 
 ---
 
