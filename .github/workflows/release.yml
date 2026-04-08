@@ -1,0 +1,74 @@
+name: Build and Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version (e.g. v0.0.6)'
+        required: true
+  push:
+    branches: [main]
+    paths: ['RELEASE_TRIGGER']
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Determine version
+        run: |
+          if [ "${{ github.event_name }}" = "push" ]; then
+            VERSION=$(cat RELEASE_TRIGGER | tr -d '[:space:]')
+          else
+            VERSION="${{ github.event.inputs.version }}"
+          fi
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+
+      - name: Setup .NET 10
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.x'
+
+      - name: Publish self-contained exe
+        run: |
+          dotnet publish src/CurlQuickLoader/CurlQuickLoader.csproj \
+            -c Release -r win-x64 --self-contained true \
+            -p:PublishSingleFile=true \
+            -p:EnableWindowsTargeting=true
+
+      - name: Package zip
+        run: |
+          ZIPNAME="CurlQuickLoader-${VERSION}-win-x64-selfcontained.zip"
+          cd src/CurlQuickLoader/bin/Release/net10.0-windows/win-x64/publish
+          zip "${GITHUB_WORKSPACE}/${ZIPNAME}" CurlQuickLoader.exe
+          echo "ZIPNAME=${ZIPNAME}" >> $GITHUB_ENV
+          echo "ZIPPATH=${GITHUB_WORKSPACE}/${ZIPNAME}" >> $GITHUB_ENV
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ env.VERSION }}
+          name: ${{ env.VERSION }}
+          prerelease: true
+          files: ${{ env.ZIPPATH }}
+          body: |
+            ## What's fixed
+
+            **Fix: Discord webhook (and other JSON APIs) returning "Cannot send an empty message"**
+
+            When a preset has a body but no explicit `Content-Type` header, curl defaults to `application/x-www-form-urlencoded`. Discord (and many other JSON APIs) then ignore the body entirely, returning error 50006. The app now automatically injects `Content-Type: application/json` whenever a body is present and no `Content-Type` header is set. The auto-injected header is visible in the command preview, and can always be overridden by adding an explicit `Content-Type` header.
+
+            **Fix: Multi-line / quote-heavy JSON bodies now passed reliably to curl**
+
+            Preset execution now uses `ProcessStartInfo.ArgumentList` instead of building a raw command string and re-parsing it. This prevents argument-splitting issues when the body contains embedded double-quotes or newlines (e.g. formatted JSON blocks).
+
+            ## Installation
+
+            Download `CurlQuickLoader-${{ env.VERSION }}-win-x64-selfcontained.zip`, extract, and run `CurlQuickLoader.exe`. No .NET required.
+
+            > curl is required. Windows 10 1803+ and Windows 11 include it in System32.
