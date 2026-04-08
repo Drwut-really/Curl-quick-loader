@@ -15,13 +15,12 @@ permissions:
 
 jobs:
   release:
-    runs-on: windows-latest
+    runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v4
 
       - name: Determine version
-        shell: bash
         run: |
           if [ "${{ github.event_name }}" = "push" ]; then
             VERSION=$(cat RELEASE_TRIGGER | tr -d '[:space:]')
@@ -30,24 +29,30 @@ jobs:
           fi
           echo "VERSION=$VERSION" >> $GITHUB_ENV
 
-      - name: Setup .NET 10
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: '10.0.x'
+      - name: Install .NET 10 SDK
+        run: |
+          curl -sSL https://dot.net/v1/dotnet-install.sh -o dotnet-install.sh
+          chmod +x dotnet-install.sh
+          ./dotnet-install.sh --channel 10.0 --install-dir $HOME/.dotnet
+          echo "$HOME/.dotnet" >> $GITHUB_PATH
+          echo "DOTNET_ROOT=$HOME/.dotnet" >> $GITHUB_ENV
+
+      - name: Verify .NET version
+        run: dotnet --version
 
       - name: Publish self-contained exe
-        shell: bash
         run: |
           dotnet publish src/CurlQuickLoader/CurlQuickLoader.csproj \
             -c Release -r win-x64 --self-contained true \
-            -p:PublishSingleFile=true
+            -p:PublishSingleFile=true \
+            -p:EnableWindowsTargeting=true \
+            -v:n
 
       - name: Package zip
-        shell: bash
         run: |
           ZIPNAME="CurlQuickLoader-${VERSION}-win-x64-selfcontained.zip"
           PUBLISH="src/CurlQuickLoader/bin/Release/net10.0-windows/win-x64/publish"
-          7z a "${ZIPNAME}" "${PUBLISH}/CurlQuickLoader.exe"
+          zip -j "${ZIPNAME}" "${PUBLISH}/CurlQuickLoader.exe"
           echo "ZIPNAME=${ZIPNAME}" >> $GITHUB_ENV
 
       - name: Create GitHub Release
