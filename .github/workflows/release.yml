@@ -21,7 +21,6 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Determine version
-        id: version
         run: |
           if [ "${{ github.event_name }}" = "push" ]; then
             VERSION=$(cat RELEASE_TRIGGER | tr -d '[:space:]')
@@ -29,7 +28,6 @@ jobs:
             VERSION="${{ github.event.inputs.version }}"
           fi
           echo "VERSION=$VERSION" >> $GITHUB_ENV
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
 
       - name: Setup .NET 10
         uses: actions/setup-dotnet@v4
