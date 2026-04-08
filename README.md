@@ -22,14 +22,7 @@ A Windows desktop application for creating and managing named preset curl comman
 
 ## Installation
 
-### Option 1 — Self-contained (no .NET required)
-
-Download and extract **[CurlQuickLoader-v0.0.1-win-x64-selfcontained.zip](releases/v0.0.1/CurlQuickLoader-v0.0.1-win-x64-selfcontained.zip)**, then run `CurlQuickLoader.exe`.
-
-### Option 2 — Framework-dependent (smaller download)
-
-1. Install the [.NET 10 Windows Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/10.0)
-2. Download and extract **[CurlQuickLoader-v0.0.1-win-x64.zip](releases/v0.0.1/CurlQuickLoader-v0.0.1-win-x64.zip)**, then run `CurlQuickLoader.exe`
+Download and extract **[CurlQuickLoader-v0.0.2-win-x64-selfcontained.zip](releases/v0.0.2/CurlQuickLoader-v0.0.2-win-x64-selfcontained.zip)**, then run `CurlQuickLoader.exe`. No .NET installation required.
 
 > **Note:** curl is required to run presets. Windows 10 (1803+) and Windows 11 include curl in `System32` — no extra install needed.
 
@@ -252,6 +245,10 @@ You can also edit `presets\presets.json` directly in any text editor — it's pl
 
 ## Changelog
 
+### v0.0.2 (prerelease)
+- **Fix:** `Panel1MinSize` and `Panel2MinSize` on the `SplitContainer` are now applied in the `Load` event rather than during construction — setting them before the form has real dimensions caused `InvalidOperationException: SplitterDistance must be between Panel1MinSize and Width - Panel2MinSize` on startup
+- **Removed:** Framework-dependent build — only the self-contained single-exe is distributed
+
 ### v0.0.1 (prerelease)
 - **Fix:** Application now correctly detects its own directory when deployed as a single-file exe — presets folder is created next to the `.exe`, not in a temp extraction folder
 - **Fix:** `SplitterDistance` is now set after the form has finished layout, preventing a silent startup crash on certain Windows 11 configurations
@@ -275,10 +272,6 @@ dotnet run --project src\CurlQuickLoader\CurlQuickLoader.csproj
 REM Publish — self-contained single .exe (no .NET install needed on target machine)
 dotnet publish src\CurlQuickLoader\CurlQuickLoader.csproj ^
   -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true
-
-REM Publish — framework-dependent (smaller, requires .NET 10 Desktop Runtime)
-dotnet publish src\CurlQuickLoader\CurlQuickLoader.csproj ^
-  -c Release -r win-x64 --self-contained false
 ```
 
 Output: `src\CurlQuickLoader\bin\Release\net10.0-windows\win-x64\publish\CurlQuickLoader.exe`

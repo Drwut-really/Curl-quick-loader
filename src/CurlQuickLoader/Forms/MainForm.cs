@@ -69,9 +69,7 @@ public class MainForm : Form
         // ── Main split ───────────────────────────────────────────────────────
         _split = new SplitContainer
         {
-            Dock = DockStyle.Fill,
-            Panel1MinSize = 260,
-            Panel2MinSize = 300
+            Dock = DockStyle.Fill
         };
 
         // LEFT: search + list
@@ -206,8 +204,12 @@ public class MainForm : Form
         Logger.Info("MainForm_Load start");
         try
         {
-            // Set SplitterDistance after the form has been laid out to avoid
-            // InvalidOperationException on some Windows configurations
+            // Set Panel1MinSize, Panel2MinSize, and SplitterDistance after the form has
+            // been laid out to avoid InvalidOperationException — setting min sizes before
+            // the container has real dimensions causes the constraint math to fail against
+            // a zero-width control, which throws on some Windows configurations.
+            _split.Panel1MinSize = 260;
+            _split.Panel2MinSize = 300;
             _split.SplitterDistance = Math.Min(370, _split.Width - _split.Panel2MinSize - _split.SplitterWidth);
 
             CheckCurlAvailable();
