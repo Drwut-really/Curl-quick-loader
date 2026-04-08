@@ -7,6 +7,7 @@ public class CurlPreset
     public string Url { get; set; } = string.Empty;
     public string Method { get; set; } = "GET";
     public List<Header> Headers { get; set; } = new();
+    public List<Header> FormData { get; set; } = new();
     public string? Body { get; set; }
     public string? ExtraFlags { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.Now;
@@ -21,6 +22,7 @@ public class CurlPreset
             Url = Url,
             Method = Method,
             Headers = Headers.Select(h => new Header(h.Key, h.Value)).ToList(),
+            FormData = FormData.Select(f => new Header(f.Key, f.Value)).ToList(),
             Body = Body,
             ExtraFlags = ExtraFlags,
             CreatedAt = DateTime.Now,

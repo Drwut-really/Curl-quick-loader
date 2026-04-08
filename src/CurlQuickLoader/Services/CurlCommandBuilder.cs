@@ -27,6 +27,17 @@ public static class CurlCommandBuilder
             sb.Append($" -H \"{EscapeDoubleQuotes(key)}: {EscapeDoubleQuotes(value)}\"");
         }
 
+        // Form data
+        foreach (var entry in preset.FormData)
+        {
+            if (string.IsNullOrWhiteSpace(entry.Key))
+                continue;
+
+            string key = StripNewlines(entry.Key);
+            string value = StripNewlines(entry.Value);
+            sb.Append($" --form-string \"{EscapeDoubleQuotes(key)}={EscapeDoubleQuotes(value)}\"");
+        }
+
         // Body
         if (!string.IsNullOrEmpty(preset.Body))
         {

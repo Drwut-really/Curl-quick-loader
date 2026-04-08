@@ -10,6 +10,7 @@ public class PresetEditForm : Form
     private ComboBox _cmbMethod = null!;
     private TextBox _txtUrl = null!;
     private HeadersEditorControl _headersEditor = null!;
+    private HeadersEditorControl _formDataEditor = null!;
     private TextBox _txtBody = null!;
     private TextBox _txtExtraFlags = null!;
     private TextBox _txtPreview = null!;
@@ -36,8 +37,8 @@ public class PresetEditForm : Form
     private void InitializeComponent()
     {
         Text = _existingPreset == null ? "New Preset" : "Edit Preset";
-        Size = new Size(700, 680);
-        MinimumSize = new Size(600, 600);
+        Size = new Size(700, 820);
+        MinimumSize = new Size(600, 700);
         StartPosition = FormStartPosition.CenterParent;
         FormBorderStyle = FormBorderStyle.Sizable;
 
@@ -45,7 +46,7 @@ public class PresetEditForm : Form
         {
             Dock = DockStyle.Fill,
             ColumnCount = 2,
-            RowCount = 8,
+            RowCount = 10,
             Padding = new Padding(12),
             AutoSize = false
         };
@@ -53,14 +54,16 @@ public class PresetEditForm : Form
         mainPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
 
         // Row heights
-        mainPanel.RowStyles.Add(new RowStyle(SizeType.Absolute, 34));  // Name
-        mainPanel.RowStyles.Add(new RowStyle(SizeType.Absolute, 34));  // Method
-        mainPanel.RowStyles.Add(new RowStyle(SizeType.Absolute, 34));  // URL
-        mainPanel.RowStyles.Add(new RowStyle(SizeType.Absolute, 28));  // Headers label
-        mainPanel.RowStyles.Add(new RowStyle(SizeType.Percent, 35));   // Headers grid
-        mainPanel.RowStyles.Add(new RowStyle(SizeType.Percent, 20));   // Body
-        mainPanel.RowStyles.Add(new RowStyle(SizeType.Absolute, 34));  // Extra Flags
-        mainPanel.RowStyles.Add(new RowStyle(SizeType.Percent, 20));   // Preview
+        mainPanel.RowStyles.Add(new RowStyle(SizeType.Absolute, 34));   // Name
+        mainPanel.RowStyles.Add(new RowStyle(SizeType.Absolute, 34));   // Method
+        mainPanel.RowStyles.Add(new RowStyle(SizeType.Absolute, 34));   // URL
+        mainPanel.RowStyles.Add(new RowStyle(SizeType.Absolute, 28));   // Headers label
+        mainPanel.RowStyles.Add(new RowStyle(SizeType.Percent, 25));    // Headers grid
+        mainPanel.RowStyles.Add(new RowStyle(SizeType.Absolute, 28));   // Form Data label
+        mainPanel.RowStyles.Add(new RowStyle(SizeType.Percent, 25));    // Form Data grid
+        mainPanel.RowStyles.Add(new RowStyle(SizeType.Percent, 15));    // Body
+        mainPanel.RowStyles.Add(new RowStyle(SizeType.Absolute, 34));   // Extra Flags
+        mainPanel.RowStyles.Add(new RowStyle(SizeType.Percent, 15));    // Preview
 
         // Name
         mainPanel.Controls.Add(MakeLabel("Name:"), 0, 0);
@@ -98,8 +101,8 @@ public class PresetEditForm : Form
             Font = new Font(Font.FontFamily, 8f)
         }, 1, 3);
 
-        // Headers editor (spans both columns for visual space)
-        _headersEditor = new HeadersEditorControl
+        // Headers editor (spans both columns)
+        _headersEditor = new HeadersEditorControl("Header Name", "+ Add Header")
         {
             Dock = DockStyle.Fill,
             Margin = new Padding(0, 0, 0, 4)
@@ -108,8 +111,33 @@ public class PresetEditForm : Form
         mainPanel.SetColumnSpan(_headersEditor, 2);
         mainPanel.Controls.Add(_headersEditor, 0, 4);
 
+        // Form Data label
+        mainPanel.Controls.Add(MakeLabel("Form Data:"), 0, 5);
+        mainPanel.Controls.Add(new Label
+        {
+            Text = "Key / value pairs sent as --form-string arguments:",
+            Dock = DockStyle.Fill,
+            TextAlign = ContentAlignment.MiddleLeft,
+            ForeColor = SystemColors.GrayText,
+            Font = new Font(Font.FontFamily, 8f)
+        }, 1, 5);
+
+        // Form Data editor (spans both columns)
+        _formDataEditor = new HeadersEditorControl("Field Name", "+ Add Field")
+        {
+            Dock = DockStyle.Fill,
+            Margin = new Padding(0, 0, 0, 4)
+        };
+        _formDataEditor.SetHeaders(new List<Header>());
+        mainPanel.SetColumnSpan(_formDataEditor, 2);
+        mainPanel.Controls.Add(_formDataEditor, 0, 6);
+
+        // Wire up change events for live preview
+        _headersEditor.OnChanged += OnFieldChanged;
+        _formDataEditor.OnChanged += OnFieldChanged;
+
         // Body
-        mainPanel.Controls.Add(MakeLabel("Body:"), 0, 5);
+        mainPanel.Controls.Add(MakeLabel("Body:"), 0, 7);
         _txtBody = new TextBox
         {
             Dock = DockStyle.Fill,
@@ -119,13 +147,13 @@ public class PresetEditForm : Form
             Margin = new Padding(0, 0, 0, 4)
         };
         _txtBody.TextChanged += OnFieldChanged;
-        mainPanel.Controls.Add(_txtBody, 1, 5);
+        mainPanel.Controls.Add(_txtBody, 1, 7);
 
         // Extra flags
-        mainPanel.Controls.Add(MakeLabel("Extra Flags:"), 0, 6);
+        mainPanel.Controls.Add(MakeLabel("Extra Flags:"), 0, 8);
         _txtExtraFlags = new TextBox { Dock = DockStyle.Fill, Margin = new Padding(0, 4, 0, 4) };
         _txtExtraFlags.TextChanged += OnFieldChanged;
-        mainPanel.Controls.Add(_txtExtraFlags, 1, 6);
+        mainPanel.Controls.Add(_txtExtraFlags, 1, 8);
 
         // Preview (spans both columns)
         var previewPanel = new Panel { Dock = DockStyle.Fill, Margin = new Padding(0, 4, 0, 0) };
@@ -149,7 +177,7 @@ public class PresetEditForm : Form
         previewPanel.Controls.Add(_txtPreview);
         previewPanel.Controls.Add(previewLabel);
         mainPanel.SetColumnSpan(previewPanel, 2);
-        mainPanel.Controls.Add(previewPanel, 0, 7);
+        mainPanel.Controls.Add(previewPanel, 0, 9);
 
         // Button row at bottom
         var buttonPanel = new FlowLayoutPanel
@@ -157,20 +185,22 @@ public class PresetEditForm : Form
             Dock = DockStyle.Bottom,
             FlowDirection = FlowDirection.RightToLeft,
             AutoSize = true,
-            Padding = new Padding(8, 4, 8, 8)
+            Padding = new Padding(8, 6, 8, 8)
         };
 
         _btnCancel = new Button
         {
             Text = "Cancel",
             DialogResult = DialogResult.Cancel,
-            Width = 90
+            Width = 90,
+            Height = 46
         };
 
         _btnOk = new Button
         {
             Text = "Save",
-            Width = 90
+            Width = 90,
+            Height = 46
         };
         _btnOk.Click += BtnOk_Click;
 
@@ -201,6 +231,7 @@ public class PresetEditForm : Form
         if (_cmbMethod.SelectedIndex < 0) _cmbMethod.SelectedIndex = 0;
         _txtUrl.Text = _existingPreset.Url;
         _headersEditor.SetHeaders(_existingPreset.Headers);
+        _formDataEditor.SetHeaders(_existingPreset.FormData);
         _txtBody.Text = _existingPreset.Body ?? string.Empty;
         _txtExtraFlags.Text = _existingPreset.ExtraFlags ?? string.Empty;
         UpdatePreview();
@@ -223,6 +254,7 @@ public class PresetEditForm : Form
             Method = _cmbMethod.SelectedItem?.ToString() ?? "GET",
             Url = _txtUrl.Text.Trim(),
             Headers = _headersEditor.GetHeaders(),
+            FormData = _formDataEditor.GetHeaders(),
             Body = string.IsNullOrEmpty(_txtBody.Text) ? null : _txtBody.Text,
             ExtraFlags = string.IsNullOrEmpty(_txtExtraFlags.Text) ? null : _txtExtraFlags.Text.Trim(),
             CreatedAt = _existingPreset?.CreatedAt ?? DateTime.Now,

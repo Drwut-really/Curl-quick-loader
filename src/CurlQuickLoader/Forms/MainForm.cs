@@ -48,8 +48,6 @@ public class MainForm : Form
         StartPosition = FormStartPosition.CenterScreen;
         Load += MainForm_Load;
 
-        BuildMenu();
-
         // ── Toolbar ──────────────────────────────────────────────────────────
         var toolbar = new FlowLayoutPanel
         {
@@ -194,6 +192,9 @@ public class MainForm : Form
 
         Controls.Add(_split);
         Controls.Add(toolbar);
+        // Menu must be added last so WinForms docking processes it first,
+        // placing it at the top above the toolbar (Windows standard layout).
+        BuildMenu();
 
         UpdateButtonStates();
         Logger.Info("InitializeComponent complete");

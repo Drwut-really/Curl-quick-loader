@@ -22,7 +22,7 @@ A Windows desktop application for creating and managing named preset curl comman
 
 ## Installation
 
-Download and extract **[CurlQuickLoader-v0.0.2-win-x64-selfcontained.zip](releases/v0.0.2/CurlQuickLoader-v0.0.2-win-x64-selfcontained.zip)**, then run `CurlQuickLoader.exe`. No .NET installation required.
+Download and extract **[CurlQuickLoader-v0.0.3-win-x64-selfcontained.zip](releases/v0.0.3/CurlQuickLoader-v0.0.3-win-x64-selfcontained.zip)**, then run `CurlQuickLoader.exe`. No .NET installation required.
 
 > **Note:** curl is required to run presets. Windows 10 (1803+) and Windows 11 include curl in `System32` — no extra install needed.
 
@@ -244,6 +244,11 @@ You can also edit `presets\presets.json` directly in any text editor — it's pl
 ---
 
 ## Changelog
+
+### v0.0.3 (prerelease)
+- **New:** Form Data editor — add key/value pairs in the preset dialog that are appended as `--form-string "key=value"` curl arguments, identical UX to the Headers editor
+- **Fix:** Save and Cancel buttons in the preset dialog are now properly sized (twice their previous height) so text renders at normal size
+- **Fix:** File and Help menus now appear above the New/Edit/Delete/Duplicate toolbar, matching Windows design standards
 
 ### v0.0.2 (prerelease)
 - **Fix:** `Panel1MinSize` and `Panel2MinSize` on the `SplitContainer` are now applied in the `Load` event rather than during construction — setting them before the form has real dimensions caused `InvalidOperationException: SplitterDistance must be between Panel1MinSize and Width - Panel2MinSize` on startup
