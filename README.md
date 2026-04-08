@@ -248,6 +248,10 @@ You can also edit `presets\presets.json` directly in any text editor — it's pl
 
 ## Changelog
 
+### v0.0.6 (prerelease)
+- **Fix:** Presets with a JSON body but no explicit `Content-Type` header now automatically send `Content-Type: application/json`. Without this, curl defaults to `application/x-www-form-urlencoded`, causing APIs such as Discord webhooks to ignore the JSON body and return "Cannot send an empty message" (error 50006).
+- **Fix:** Preset execution now uses `ProcessStartInfo.ArgumentList` instead of building a raw argument string. This ensures that bodies containing embedded quotes or newlines (e.g. formatted JSON) are passed to curl without any argument-splitting issues.
+
 ### v0.0.5 (prerelease)
 - **Fix:** No console window on GUI launch. `GetConsoleProcessList` is used to distinguish a double-click launch (process owns the console) from a shell launch with no args (console is inherited). Only in the former case is the window hidden via `ShowWindow(SW_HIDE)` before `FreeConsole()` — hiding it in the inherited case would close the user's terminal.
 - **New:** Command preview and output panels are now resizable — a draggable horizontal splitter separates them in the right panel.

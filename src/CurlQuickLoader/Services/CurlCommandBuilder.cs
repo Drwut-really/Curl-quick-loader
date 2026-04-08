@@ -41,6 +41,14 @@ public static class CurlCommandBuilder
         // Body
         if (!string.IsNullOrEmpty(preset.Body))
         {
+            // Auto-inject Content-Type: application/json when no Content-Type header is present.
+            // Without it curl defaults to application/x-www-form-urlencoded, which causes APIs
+            // like Discord webhooks to ignore the JSON body and return "empty message" errors.
+            bool hasContentType = preset.Headers.Any(h =>
+                string.Equals(h.Key.Trim(), "Content-Type", StringComparison.OrdinalIgnoreCase));
+            if (!hasContentType)
+                sb.Append(" -H \"Content-Type: application/json\"");
+
             string body = EscapeDoubleQuotes(preset.Body);
             sb.Append($" --data-binary \"{body}\"");
         }
